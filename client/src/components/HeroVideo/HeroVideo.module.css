@@ -1,0 +1,53 @@
+/*
+ * The hero's background film.
+ *
+ * The file is ~9MB, so nothing about it is allowed onto the critical path:
+ *
+ *   - the `<video>` mounts with no `src` at all, so the browser cannot begin
+ *     fetching during the initial render;
+ *   - the source is attached on an idle callback after paint, so the hero's
+ *     text and the laptop are interactive first;
+ *   - `preload="none"` keeps even that attachment from pulling data until
+ *     playback is asked for.
+ *
+ * The solid ground colour lives on the section itself, underneath. If the file
+ * is missing, decodes badly, or never gets an idle moment, the hero is a solid
+ * dark panel and every other part of it is unaffected.
+ *
+ * Playback is also suspended whenever nobody can see it — scrolled past, or a
+ * backgrounded tab — because decoding video off-screen is pure battery cost.
+ */
+
+.layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Two passes: a flat wash that guarantees a contrast floor wherever the
+    footage is bright, and a bottom gradient that anchors the copy. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 18, 13, 0.3);
+}
+
+.fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(6, 18, 13, 0.85) 0%,
+    rgba(6, 18, 13, 0.45) 40%,
+    transparent 70%
+  );
+}

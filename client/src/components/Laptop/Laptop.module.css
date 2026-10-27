@@ -1,0 +1,458 @@
+/* ------------------------------------------------------- syntax highlight */
+
+/** Token classes, mapped 1:1 onto the colour rules in the stylesheet. */
+.type-cls { /* placeholder */ }
+
+/* --------------------------------------------------------------- snippets */
+
+.code {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #e4e4e4;
+  background: #1e1e1e;
+  overflow: hidden;
+}
+
+.gutter {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  bottom: 0;
+  width: 2.5rem;
+  padding-inline-end: 0.5rem;
+  text-align: end;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #858585;
+  background: #1e1e1e;
+  border-inline-end: 1px solid #333;
+  user-select: none;
+}
+
+.lines {
+  margin-inline-start: 2.5rem;
+  padding: 0.5rem;
+  white-space: pre;
+}
+
+.caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 1.2em;
+  margin-inline-start: 1px;
+  vertical-align: bottom;
+  background: #fff;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.ghost {
+  color: #6a9955;
+}
+
+/* Syntax highlighting colours */
+.c { color: #6a9955; } /* comment */
+.s { color: #ce9178; } /* string */
+.g { color: #4ec9b0; } /* jsx tag */
+.k { color: #c586c0; } /* keyword */
+.t { color: #4ec9b0; } /* type */
+.f { color: #dcdcaa; } /* function */
+.n { color: #b5cea8; } /* number */
+.v { color: #9cdcfe; } /* variable */
+.p { color: #d4d4d4; } /* plain */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3c3c3c;
+  font-size: 11px;
+  color: #cccccc;
+}
+
+.dots {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.dotR { background: #ff5f57; }
+.dotY { background: #ffbd2e; }
+.dotG { background: #28ca42; }
+
+.fileTab {
+  margin-inline-start: 0.5rem;
+  color: #999;
+}
+
+.stageWrap {
+  position: relative;
+  width: 100%;
+  height: calc(100% - 2rem);
+}
+
+.glare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.06) 0%,
+    transparent 40%,
+    transparent 60%,
+    rgba(0,0,0,0.08) 100%
+  );
+  pointer-events: none;
+}
+
+.hit {
+  position: absolute;
+  inset: 0;
+}
+
+/* -------------------------------------------------------------- keyboard */
+
+.keyboard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0.5rem;
+  background: #1a1a1a;
+  color: #e4e4e4;
+  font-family: system-ui, sans-serif;
+  font-size: 10px;
+  line-height: 1;
+  user-select: none;
+}
+
+.krow {
+  display: flex;
+  gap: 1px;
+  margin-bottom: 1px;
+}
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  min-width: 1.5rem;
+  padding: 0 0.25rem;
+  border-radius: 3px;
+  background: #2a2a2a;
+  color: #e4e4e4;
+  font-weight: 500;
+  transition: background 0.1s, transform 0.05s;
+}
+
+.key.small {
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.key[data-hit="1"] {
+  background: #3a3a3a;
+  transform: scale(0.95);
+}
+
+.cap {
+  display: block;
+}
+
+.barrel {
+  position: absolute;
+  top: 0.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4rem;
+  height: 0.25rem;
+  border-radius: 0.125rem;
+  background: #333;
+}
+
+.trackpad {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8rem;
+  height: 3.5rem;
+  border-radius: 0.5rem;
+  background: #2a2a2a;
+}
+
+/* ----------------------------------------------------------------- laptop */
+
+.wrap {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.flight {
+  perspective: 1400px;
+}
+
+.scene {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.35;
+  transform-style: preserve-3d;
+}
+
+.float {
+  position: absolute;
+  inset: 0;
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotateX(0.5deg); }
+  50% { transform: translateY(-4px) rotateX(-0.5deg); }
+}
+
+.rig {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(-12deg);
+}
+
+.shadow {
+  position: absolute;
+  inset: auto 10% 0 10%;
+  height: 60%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0,0,0,0.25) 0%,
+    transparent 70%
+  );
+  filter: blur(20px);
+  transform-origin: center bottom;
+  transform: rotateX(90deg) translateZ(-2px);
+}
+
+.contact {
+  position: absolute;
+  inset: auto 5% 0 5%;
+  height: 8%;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.15) 0%,
+    transparent 100%
+  );
+  transform-origin: center bottom;
+  transform: rotateX(90deg) translateZ(-1px);
+}
+
+/* --- lid slab -------------------------------------------- */
+
+.hinge {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: center top;
+}
+
+.lid {
+  position: relative;
+  width: 100%;
+  height: 62%;
+  transform-style: preserve-3d;
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.fFront {
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.3),
+    0 0 0 1px rgba(0,0,0,0.2);
+  transform: translateZ(2px);
+}
+
+.fBack {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 0 0 1px rgba(0,0,0,0.3);
+  transform: rotateY(180deg) translateZ(2px);
+}
+
+.display {
+  position: absolute;
+  inset: 0.5rem;
+  background: #1e1e1e;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chin {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chinLogo {
+  opacity: 0.4;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badgeGlow {
+  position: absolute;
+  width: 8rem;
+  height: 8rem;
+  background: radial-gradient(
+    circle at center,
+    rgba(16,152,90,0.3) 0%,
+    transparent 70%
+  );
+  filter: blur(20px);
+}
+
+.badge {
+  width: 6rem;
+  opacity: 0.6;
+}
+
+.metal {
+  position: absolute;
+  background: linear-gradient(90deg, #3a3a3a 0%, #4a4a4a 50%, #3a3a3a 100%);
+}
+
+.eTop {
+  inset: 0 0 auto 0;
+  height: 2px;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.eBottom {
+  inset: auto 0 0 0;
+  height: 2px;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.metalSide {
+  position: absolute;
+  width: 2px;
+  background: linear-gradient(180deg, #3a3a3a 0%, #4a4a4a 50%, #3a3a3a 100%);
+}
+
+.eLeft {
+  inset: 0 auto 0 0;
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+
+.eRight {
+  inset: 0 0 0 auto;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+/* --- body slab ------------------------------------------- */
+
+.base {
+  position: relative;
+  width: 100%;
+  height: 38%;
+  transform-style: preserve-3d;
+}
+
+.deckFace {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #252525 0%, #1a1a1a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.3),
+    0 0 0 1px rgba(0,0,0,0.2);
+  border-radius: 0 0 0.5rem 0.5rem;
+  transform: translateZ(2px);
+}
+
+.underside {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 0 0 1px rgba(0,0,0,0.3);
+  border-radius: 0 0 0.5rem 0.5rem;
+  transform: rotateX(180deg) translateZ(2px);
+}
+
+/* Reopen button when lid is closed */
+.reopen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* RTL support */
+[data-lid="open"] .reopen {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float {
+    animation: none;
+  }
+  .caret {
+    animation: none;
+  }
+  .key[data-hit="1"] {
+    transform: none;
+  }
+}
+
+/* Pause animations when not live */
+[data-live="0"] .float,
+[data-live="0"] .caret,
+[data-live="0"] .keyboard {
+  animation-play-state: paused;
+}

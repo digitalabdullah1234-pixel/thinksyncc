@@ -1,0 +1,67 @@
+/** Anything that should make the glow swell. */
+/*
+ * There is deliberately no easing constant here any more.
+ *
+ * The glow used to chase the pointer with exponential smoothing at 0.6 per
+ * frame, which by construction leaves it two thirds of a frame of travel
+ * behind — a visible green smear trailing the cursor on any quick flick. The
+ * loop below writes the pointer's exact coordinate instead, so the bloom is
+ * under the pointer on the same frame the browser delivered the event.
+ */
+
+/**
+ * A soft green bloom that follows the pointer.
+ *
+ * This deliberately does NOT replace the system cursor.
+ *
+ * It used to: a black dot was drawn at the pointer and the native cursor was
+ * hidden. That shipped a bug that made the site unclickable — the dot carried
+ * its position in `transform` and its hover state in the standalone CSS `scale`
+ * property, and per CSS Transforms Level 2 the individual transform properties
+ * compose as translate -> rotate -> scale -> transform. `scale` therefore
+ * multiplies the translation inside `transform`, so the instant the pointer
+ * approached a link (scale 2.1) the drawn dot leapt to 2.1x its real
+ * coordinates while the true pointer stayed put.
+ *
+ * The system cursor is pixel-accurate by construction, so it stays visible and
+ * this is purely decorative. The lesson is kept structurally rather than as a
+ * comment: the follower's position and its scale live on two different
+ * elements, so they can never multiply again.
+ *
+ * Every layer is pointer-events: none, and nothing here is ever a hit target.
+ */
+
+.follow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate3d(-200px, -200px, 0);
+  will-change: transform;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.glow {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(16, 152, 90, 0.6) 0%,
+    rgba(16, 152, 90, 0.2) 40%,
+    transparent 70%
+  );
+  transform: translate(-50%, -50%) scale(1);
+  will-change: transform;
+  transition: transform 0.15s ease-out;
+}
+
+.glow.hot {
+  transform: translate(-50%, -50%) scale(2.1);
+}
+
+.glow.down {
+  transform: translate(-50%, -50%) scale(0.8);
+}

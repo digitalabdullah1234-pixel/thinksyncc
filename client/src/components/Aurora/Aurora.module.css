@@ -1,0 +1,102 @@
+/*
+ * The hero's background stack, bottom to top:
+ *   .canvas    the drifting, breathing aurora, drawn small and upscaled
+ *   .scrim     a flat wash that sets the contrast floor for white text
+ *   .vignette  darkened edges, so the centre glows and the copy pops
+ *   .grain     fine film grain, which also hides the upscale and any banding
+ *
+ * The top three are static gradients and a static texture. They cost one paint
+ * at load and nothing afterwards, which is why the readability floor and the
+ * texture live here rather than inside the canvas loop.
+ */
+
+.layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* The fallback. Painted whether or not the canvas ever draws a pixel. */
+  background: #06120d;
+  pointer-events: none;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * rgba(6, 18, 13, 0.30). Over the brightest point the aurora can reach this
+ * still lands white text far clear of the 4.5:1 floor, and over anything
+ * darker it only improves. Slightly lighter than the first pass because the
+ * ground underneath is now darker, so the same readability costs less glow.
+ */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 18, 13, 0.3);
+}
+
+/*
+ * The reading pool.
+ *
+ * A soft dark ellipse under the copy, so the text sits on a guaranteed floor
+ * without having to dim the whole field to get there. Between this and the
+ * edge vignette the brightest band ends up as a ring *around* the copy, which
+ * is both more readable and better looking than a uniformly darker aurora.
+ */
+.focus {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 62% 50% at 50% 45%,
+    rgba(6, 18, 13, 0.44) 0%,
+    rgba(6, 18, 13, 0.24) 58%,
+    transparent 100%
+  );
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 112% 92% at 50% 46%,
+    transparent 34%,
+    rgba(6, 18, 13, 0.46) 74%,
+    rgba(6, 18, 13, 0.82) 100%
+  );
+}
+
+/*
+ * Film grain, as an inline SVG turbulence tile.
+ *
+ * Inline rather than a file so it costs no request, and a plain low `opacity`
+ * rather than a blend mode on purpose: `mix-blend-mode` would force the
+ * compositor to re-blend this full-screen layer against the canvas on every
+ * animated frame, which is exactly the kind of per-frame full-screen work the
+ * rest of this component is built to avoid. At this opacity a straight overlay
+ * is indistinguishable and composites once.
+ *
+ * It earns its place twice over: it is what makes the gradient read as a
+ * photographed surface rather than a CSS fill, and it dithers away the banding
+ * that a 560px backing store stretched across a wide screen would otherwise
+ * show in the soft falloffs.
+ */
+.grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  background-repeat: repeat;
+}
+
+/* Grain is texture, not information, and a fixed dither pattern is a common
+   trigger for visual sensitivity. */
+@media (prefers-reduced-motion: reduce) {
+  .grain {
+    opacity: 0.03;
+  }
+}

@@ -1,0 +1,52 @@
+/*
+ * The hero's background stack, bottom to top:
+ *   .layer   the solid ground colour — the fallback, always painted
+ *   .video   the film, covering the layer
+ *   .scrim   a flat wash that sets the contrast floor for white text
+ *   .fade    a bottom gradient that carries the copy into the next section
+ */
+
+.layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* The fallback. Painted whether or not a single byte of video arrives. */
+  background: var(--color-hero-ground);
+  pointer-events: none;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Nudges decoding onto its own layer so it never repaints the copy above. */
+  will-change: transform;
+}
+
+/*
+ * rgba(6, 20, 14, 0.62). Over the brightest footage this still lands white
+ * text at roughly 5.3:1, which clears the 4.5:1 floor; over anything darker it
+ * only improves.
+ */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 20, 14, 0.62);
+}
+
+.fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    /* The navbar band. White nav links sit here over whatever the footage
+       happens to be doing, so it gets its own guaranteed floor. */
+    rgba(6, 20, 14, 0.62) 0%,
+    rgba(6, 20, 14, 0.34) 9%,
+    rgba(6, 20, 14, 0) 28%,
+    rgba(6, 20, 14, 0.28) 68%,
+    rgba(11, 15, 13, 0.92) 100%
+  );
+}

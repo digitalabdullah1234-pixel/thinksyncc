@@ -1,0 +1,842 @@
+/*
+ * A Razer-Blade-style laptop modelled as two real CSS-3D slabs.
+ *
+ * GEOMETRY
+ * --------
+ * Everything is in `em`, and `.scene` sets its own font-size from `cqw`, so
+ * 100em is exactly the laptop's width and the whole model scales as one object
+ * with whatever column it is dropped into.
+ *
+ * Two planes hinge along one line:
+ *   .base   rotateX(90deg) about its TOP edge, so it lies flat and runs from
+ *           the hinge toward the viewer
+ *   .hinge  rotateX(22deg -> -90deg) about its BOTTOM edge, the same line, so
+ *           the lid swings from upright to flat on the deck
+ *
+ * Each is a SLAB, not a plane: front, back and four edge faces built from one
+ * shared set of classes, so the body has genuine thickness from any angle.
+ * `--d` is a slab's depth; every face offsets by half of it.
+ *
+ * HIT TESTING — the reason the layering looks the way it does
+ * -----------------------------------------------------------
+ * Chromium hit-tests a `preserve-3d` wrapper against its own flat, untransformed
+ * layout box, and that box wins over the 3D-transformed children inside it. The
+ * lid's wrappers lie directly over the screen, so every click on the screen was
+ * being swallowed by `.hinge` and never reached the button.
+ *
+ * The rule that follows, and that the whole structure depends on:
+ *
+ *   - wrappers that exist only to pass 3D down (.float, .rig, .hinge, .lid,
+ *     .base, .deckFace) take NO pointer events;
+ *   - the real surfaces (.hit, .face, .back, .key) take them back explicitly.
+ *
+ * For the same reason, every surface a person clicks is left `flat`: only the
+ * wrappers carry preserve-3d.
+ */
+
+.wrap {
+  /* The unit the laptop measures itself against. */
+  container-type: inline-size;
+  width: 100%;
+}
+
+/*
+ * The arrival wrapper. Deliberately NOT `preserve-3d`: the model flattens into
+ * this element and the browser transforms one rasterised texture, instead of
+ * re-sorting a two-hundred-element 3D scene every frame of the flight.
+ *
+ * Its perspective is supplied by `transformPerspective` inside its own
+ * transform, NOT by a `perspective` property on `.wrap`. A perspective on the
+ * container reaches down into the model and fights with `.scene`'s own 420em
+ * camera — it threw the screen and the keyboard hundreds of pixels out of
+ * position. Keeping it inside this element's transform keeps it to this
+ * element.
+ */
+.flight {
+  transform-origin: 50% 60%;
+}
+
+.scene {
+  position: relative;
+  width: 100em;
+  height: 84em;
+  margin-inline: auto;
+  /* 100em is the laptop's own width; the column keeps the remainder as room
+     for the three-quarter turn, which spills past that box on both sides. */
+  font-size: clamp(2.05px, 0.8cqw, 4.7px);
+  /* Long lens. A short one magnifies the deck's leading edge by two thirds
+     and the model reads as a fisheye rather than a laptop. */
+  perspective: 420em;
+  perspective-origin: 50% 45%;
+}
+
+.float {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  animation: float 9s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -1.6em, 0);
+  }
+}
+
+.rig {
+  position: absolute;
+  pointer-events: none;
+  /* The hinge line. The lid grows upward from here and the deck runs forward
+     from here, so this is the model's true anchor. */
+  top: 66em;
+  left: 0;
+  width: 100em;
+  height: 0;
+  transform-style: preserve-3d;
+  /* Negative X: the deck lies at 90deg to the lid, so the camera only clears
+     its leading edge — and sees the keyboard at all — from above this line. */
+  transform: rotateX(-12deg) rotateY(var(--ry, -16deg));
+}
+
+/* ------------------------------------------------------------------ floor */
+
+/*
+ * Two shadows, because one never looks right: a tight dark pool where the body
+ * meets the surface, and a wide soft one for ambient occlusion. Without the
+ * tight pool the laptop floats; without the wide one it looks stamped on.
+ */
+.shadow {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 1em;
+  height: 13em;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(14, 22, 19, 0.2) 0%,
+    rgba(14, 22, 19, 0.1) 48%,
+    transparent 74%
+  );
+  filter: blur(1.8em);
+  pointer-events: none;
+}
+
+.contact {
+  position: absolute;
+  left: 17%;
+  right: 17%;
+  bottom: 5.5em;
+  height: 5em;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(10, 16, 14, 0.5) 0%,
+    rgba(10, 16, 14, 0.22) 52%,
+    transparent 76%
+  );
+  filter: blur(0.7em);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------- slab faces -- */
+
+/*
+ * One box, six faces. Each rotates about the edge it belongs to and then
+ * shifts back half the slab depth, so the set closes into a solid centred on
+ * the parent's plane.
+ */
+
+.fFront,
+.fBack {
+  position: absolute;
+  inset: 0;
+}
+
+.fFront {
+  transform: translateZ(calc(var(--d) / 2));
+}
+
+.fBack {
+  transform: translateZ(calc(var(--d) / -2)) rotateY(180deg);
+}
+
+.eTop,
+.eBottom,
+.eLeft,
+.eRight {
+  position: absolute;
+  /* Only the outward-facing edges draw; the far ones sit inside the solid. */
+  backface-visibility: hidden;
+  /* Kills the hairline seam antialiasing leaves where two faces meet. */
+  outline: 1px solid transparent;
+}
+
+.eTop {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--d);
+  transform-origin: top center;
+  transform: translateZ(calc(var(--d) / -2)) rotateX(90deg);
+}
+
+.eBottom {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--d);
+  transform-origin: bottom center;
+  transform: translateZ(calc(var(--d) / -2)) rotateX(-90deg);
+}
+
+.eLeft {
+  top: 0;
+  left: 0;
+  width: var(--d);
+  height: 100%;
+  transform-origin: left center;
+  transform: translateZ(calc(var(--d) / -2)) rotateY(-90deg);
+}
+
+.eRight {
+  top: 0;
+  right: 0;
+  width: var(--d);
+  height: 100%;
+  transform-origin: right center;
+  transform: translateZ(calc(var(--d) / -2)) rotateY(90deg);
+}
+
+/*
+ * Machined anodised aluminium. Each edge gets a hard specular hairline where
+ * the chamfer catches the key light, then falls away to shadow — that hairline
+ * is what separates the faces and makes the body read as milled rather than as
+ * flat panels butted together.
+ */
+.metal {
+  background: linear-gradient(
+    180deg,
+    #6a6a6e 0%,
+    #45454a 6%,
+    #26262a 26%,
+    #18181b 68%,
+    #0e0e10 100%
+  );
+}
+
+.metalSide {
+  background: linear-gradient(
+    90deg,
+    #202023 0%,
+    #43434a 10%,
+    #28282c 34%,
+    #18181b 72%,
+    #0f0f11 100%
+  );
+}
+
+/* -------------------------------------------------------------------- lid */
+
+.hinge {
+  position: absolute;
+  pointer-events: none;
+  bottom: 0;
+  left: 0;
+  width: 100em;
+  height: 62em;
+  transform-origin: bottom center;
+  transform-style: preserve-3d;
+}
+
+.lid {
+  --d: 2.4em;
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  transform-style: preserve-3d;
+  /* The height the shut lid rests at: when closed, the lid's local -Z points
+     straight up, so this lifts it clear of the deck. The caps drop flush at
+     the same time, so it only has to clear the deck surface itself and the
+     machine closes with a tight seam rather than sitting ajar. */
+  transform: translateZ(-3.6em);
+}
+
+/* The screen side — a button, and deliberately flat so it is hit-testable. */
+.face {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 1.35em 1.35em 0;
+  border: 0;
+  border-radius: 2.2em 2.2em 0.5em 0.5em;
+  background: linear-gradient(160deg, #232326 0%, #161618 40%, #0d0d0f 100%);
+  box-shadow:
+    inset 0 0.16em 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 0.22em rgba(255, 255, 255, 0.06);
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  /* Face-down once the lid is shut, which also takes it out of hit testing. */
+  backface-visibility: hidden;
+}
+
+/*
+ * The outer shell. Sits behind the screen while open, and becomes the product's
+ * top surface once the lid is shut. Purely visual — reopening is handled by the
+ * flat `.reopen` sheet, because a 3D-rotated face hit-tests too unreliably to
+ * be the only way back in.
+ *
+ * Matte anodised aluminium: a broad off-axis sheen for the brushed finish, a
+ * bright hairline along the chamfered top edge, and a darker pool at the
+ * bottom so the panel reads as curved rather than flat.
+ */
+.back {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 2.2em 2.2em 0.5em 0.5em;
+  background:
+    linear-gradient(
+      112deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0) 34%,
+      rgba(255, 255, 255, 0.024) 58%,
+      rgba(255, 255, 255, 0) 78%
+    ),
+    linear-gradient(196deg, #242427 0%, #1a1a1d 42%, #131315 78%, #0e0e10 100%);
+  box-shadow:
+    inset 0 0.16em 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 0.22em rgba(255, 255, 255, 0.05),
+    inset 0 -1.6em 3em rgba(0, 0, 0, 0.4);
+  font: inherit;
+  color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  backface-visibility: hidden;
+}
+
+/*
+ * The wordmark, lit from within the way a laptop lid badge is.
+ *
+ * Rotated 180deg because the lid's top edge swings to the FRONT of the machine
+ * as it shuts, so an un-rotated badge reads upside down to anyone looking at
+ * the closed laptop — the same reason Apple turned the lid logo around. The
+ * open state never shows this face at all, so the closed state is the one to
+ * get right.
+ */
+.badge {
+  width: 34%;
+  height: auto;
+  transform: rotate(180deg);
+  opacity: 0.92;
+  filter: drop-shadow(0 0 0.9em rgba(210, 255, 232, 0.55))
+    drop-shadow(0 0 2.4em rgba(16, 152, 90, 0.45));
+}
+
+/* A soft pool of light under the badge, so it reads as illuminated rather
+   than printed. */
+.badgeGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 58%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(190, 255, 224, 0.14) 0%,
+    rgba(16, 152, 90, 0.08) 42%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.face:focus-visible,
+.back:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 0.5em rgba(16, 152, 90, 0.75),
+    inset 0 0 0 0.22em rgba(255, 255, 255, 0.09);
+}
+
+.cam {
+  position: absolute;
+  top: 0.42em;
+  left: 50%;
+  width: 0.6em;
+  height: 0.6em;
+  margin-left: -0.3em;
+  border-radius: 50%;
+  background: #0a0c0d;
+  box-shadow: inset 0 0 0 0.16em #2c3133;
+}
+
+.display {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 0.5em;
+  background: #131316;
+  box-shadow: inset 0 0 0 0.18em rgba(0, 0, 0, 0.85);
+}
+
+/*
+ * Reopening the shut laptop.
+ *
+ * A flat sheet over the whole stage, present only while the lid is down. The
+ * lid's own outer face is a 3D-rotated element, and Chromium hit-tests those
+ * against an approximation of their projected quad — parts of a face that are
+ * plainly visible simply do not respond. A 2D overlay always does, and
+ * "click the closed laptop anywhere to open it" is the more forgiving
+ * behaviour regardless.
+ */
+.reopen {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.reopen:focus-visible {
+  outline: 0.6em solid rgba(16, 152, 90, 0.7);
+  outline-offset: -1em;
+  border-radius: 1em;
+}
+
+/*
+ * The click target for the whole screen. A flat, transparent sheet over the
+ * running app — the app layers below never need to think about pointer events,
+ * and this is the element that actually receives the toggle click.
+ */
+.hit {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+/* Glass. A single fixed sheen, so it reads as a screen rather than blinking. */
+.glare {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: linear-gradient(
+    108deg,
+    rgba(255, 255, 255, 0.13) 0%,
+    rgba(255, 255, 255, 0.04) 22%,
+    transparent 46%
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.chin {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  /* The bottom bezel. Deeper than the sides, as on the real machine — it is
+     what the wordmark sits in. */
+  height: 3.6em;
+}
+
+.chinLogo {
+  height: 1.5em;
+  width: auto;
+  opacity: 0.75;
+}
+
+/* ------------------------------------------------------------------- base */
+
+.base {
+  --d: 3.6em;
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+  width: 100em;
+  height: 64em;
+  transform-origin: top center;
+  transform: rotateX(90deg);
+  transform-style: preserve-3d;
+}
+
+/* The deck: the base slab's top face. Keeps preserve-3d so keycaps can stand
+   proud of it and sink into it. */
+.deckFace {
+  display: flex;
+  flex-direction: column;
+  padding: 3.4em 3.2em 2.6em;
+  border-radius: 0.5em 0.5em 2.2em 2.2em;
+  background: linear-gradient(
+    178deg,
+    #232326 0%,
+    #1c1c1f 14%,
+    #161618 62%,
+    #111113 100%
+  );
+  box-shadow:
+    inset 0 0.16em 0 rgba(255, 255, 255, 0.13),
+    inset 0 0 0 0.22em rgba(255, 255, 255, 0.05);
+  transform-style: preserve-3d;
+}
+
+.underside {
+  border-radius: 0.5em 0.5em 2.2em 2.2em;
+  background: linear-gradient(#121214, #0a0a0b);
+}
+
+/* The hinge barrel, tucked along the back edge of the deck. */
+.barrel {
+  position: absolute;
+  top: 0.6em;
+  left: 16%;
+  right: 16%;
+  height: 1.6em;
+  border-radius: 0.8em;
+  background: linear-gradient(#08080a, #1a1a1d 60%, #0a0a0c);
+}
+
+/* --------------------------------------------------------------- keyboard */
+
+/*
+ * Space-black keyboard.
+ *
+ * This deck used to roll a full RGB hue across the keys, driven by animating
+ * an inherited registered custom property that 77 keys and 77 caps each read
+ * to build a background, a blurred glow and a text shadow. That was a style
+ * recalculation across 154 elements plus a repaint of every glowing keycap on
+ * every frame, forever — the most expensive thing on the page by a wide
+ * margin, and the single most un-MacBook-like detail in the model.
+ *
+ * A real backlit MacBook glows one warm white, evenly, and does not move. So
+ * the light is now static: no animation, no custom property, nothing to
+ * recompute. It costs nothing and it looks more expensive.
+ */
+
+.keyboard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* See `.krow` below — the deck's depth is fixed, so the keys fit into it. */
+  min-height: 0;
+  gap: 0.55em;
+  padding: 0.55em;
+  border-radius: 0.8em;
+  background: rgba(0, 0, 0, 0.34);
+  box-shadow: inset 0 0 1.2em rgba(0, 0, 0, 0.66);
+  transform-style: preserve-3d;
+  opacity: 1;
+  /* Delayed, so the keys reappear once the lid is actually up. */
+  transition: opacity 200ms ease-out 260ms;
+}
+
+/*
+ * Nothing is visible under a shut lid — and this is also load-bearing.
+ *
+ * Once the rig's -12deg tilt is applied, the shut lid and the keycaps end up
+ * only about 3px apart in camera depth, because both sit at the same rig-local
+ * Z and differ only in height. That is inside Chromium's tolerance for sorting
+ * nested preserve-3d subtrees, so the caps would sort in front of the lid that
+ * is covering them. Taking the keyboard out of the picture removes the
+ * ambiguity rather than trying to win it by a few pixels.
+ */
+.keyboard[data-lid="closed"] {
+  opacity: 0;
+  transition: opacity 180ms ease-out 200ms;
+}
+
+/* Caps sit flush while the lid is down, so nothing stands proud of the deck.
+   They also stop taking clicks: opacity 0 still hit-tests, and a key that
+   swallowed a click through the shut lid would stop it reopening. */
+.keyboard[data-lid="closed"] .key {
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
+/*
+ * One row of keys. Without this the deck blows apart: the rows fall back to
+ * block layout, every keycap stacks vertically instead of sitting side by
+ * side, and the keyboard sizes itself to about 1350px inside a 300px deck —
+ * which is what dragged the whole base off the bottom of the hero.
+ */
+.krow {
+  display: flex;
+  flex: 1;
+  /*
+   * A flex item defaults to `min-height: auto`, which floors it at its
+   * content's intrinsic height. The deck is a physical object with a fixed
+   * depth, so the keys have to fit it rather than the other way round.
+   */
+  min-height: 0;
+  gap: 0.55em;
+  transform-style: preserve-3d;
+}
+
+.key {
+  /* The lit well the keycap sits in. Flat on purpose — this is the element
+     that has to receive the click. The warm bleed around each cap is the
+     backlight leaking out from under it. */
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.26em;
+  border: 0;
+  border-radius: 0.42em;
+  background: rgba(255, 236, 205, 0.5);
+  pointer-events: auto;
+  cursor: pointer;
+  /* Standing proud of the deck, so a press has somewhere to travel to. */
+  transform: translateZ(0.5em);
+  box-shadow:
+    0 0.42em 0.4em rgba(0, 0, 0, 0.55),
+    0 0 0.9em rgba(255, 226, 178, 0.22);
+  transition:
+    transform 130ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 130ms ease-out;
+}
+
+.cap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Apple's keycaps are near-square with a small radius, not pills. */
+  border-radius: 0.34em;
+  background: linear-gradient(#2b2b2e 0%, #1c1c1f 48%, #141416 100%);
+  box-shadow:
+    inset 0 0.1em 0 rgba(255, 255, 255, 0.09),
+    inset 0 -0.12em 0.18em rgba(0, 0, 0, 0.62);
+  color: #ddd9d2;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 2.3em;
+  font-weight: 500;
+  line-height: 1;
+  text-shadow: 0 0 0.4em rgba(255, 228, 184, 0.45);
+  transition: background 130ms ease-out;
+}
+
+/* The function row and the modifiers carry longer labels. */
+.small .cap {
+  font-size: 1.5em;
+}
+
+.key:hover {
+  box-shadow:
+    0 0.42em 0.4em rgba(0, 0, 0, 0.55),
+    0 0 1.5em rgba(255, 230, 190, 0.42);
+}
+
+/* Held down, plus the JS-driven flash that outlives mouseup so a quick click
+   still reads as a press. The cap travels down to the deck and its drop
+   shadow collapses with it. */
+.key:active,
+.key[data-hit="1"] {
+  transform: translateZ(0);
+  box-shadow:
+    0 0.06em 0.14em rgba(0, 0, 0, 0.8),
+    0 0 1.9em rgba(255, 234, 200, 0.6);
+}
+
+.key:active .cap,
+.key[data-hit="1"] .cap {
+  background: linear-gradient(#242427 0%, #17171a 100%);
+}
+
+/* --------------------------------------------------------------- trackpad */
+
+.trackpad {
+  flex: none;
+  width: 34%;
+  height: 14em;
+  margin: 1.4em auto 0;
+  border-radius: 0.7em;
+  background: linear-gradient(160deg, #282c30 0%, #1d2023 52%, #16181b 100%);
+  box-shadow:
+    inset 0 0 0 0.16em rgba(255, 255, 255, 0.08),
+    inset 0 0.3em 0.7em rgba(0, 0, 0, 0.4);
+}
+
+/* ------------------------------------------------------------- app chrome */
+
+.app {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 2.1em;
+  line-height: 1.5;
+  color: #d4d4d4;
+  background: #1c1c1f;
+}
+
+/* --- shared code surface ------------------------------------------------ */
+
+.code {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.5em 0.6em;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.gutter {
+  flex: none;
+  padding-inline-end: 0.9em;
+  text-align: right;
+  color: #4a4f55;
+  user-select: none;
+}
+
+.lines {
+  flex: 1;
+  min-width: 0;
+}
+
+.caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-bottom: -0.15em;
+  background: #7ee2a8;
+  animation: blink 1.05s steps(2, end) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Syntax classes — VS Code Dark+, so all four apps read as the same editor. */
+.k {
+  color: #c586c0;
+}
+.v {
+  color: #9cdcfe;
+}
+.s {
+  color: #ce9178;
+}
+.f {
+  color: #dcdcaa;
+}
+.n {
+  color: #b5cea8;
+}
+.c {
+  color: #6a9955;
+  font-style: italic;
+}
+.t {
+  color: #4ec9b0;
+}
+.g {
+  color: #569cd6;
+}
+.p {
+  color: #d4d4d4;
+}
+
+/* --- editor chrome ------------------------------------------------------ */
+
+/*
+ * One title bar for one editor: traffic lights on the left, the open file
+ * named beside them. It never changes shape, so nothing here is ever
+ * re-rendered or re-laid-out while the code below types itself out.
+ */
+.topbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.9em;
+  padding: 0.62em 0.9em;
+  background: linear-gradient(#26282c, #202225);
+  box-shadow: inset 0 -0.06em 0 rgba(0, 0, 0, 0.55);
+}
+
+.dots {
+  display: flex;
+  flex: none;
+  gap: 0.42em;
+}
+
+.dot {
+  width: 0.62em;
+  height: 0.62em;
+  border-radius: 50%;
+  /* A touch of inner shading so they read as recessed lamps, not flat discs. */
+  box-shadow: inset 0 -0.06em 0.08em rgba(0, 0, 0, 0.35);
+}
+
+.dotR {
+  background: #ff5f57;
+}
+.dotY {
+  background: #febc2e;
+}
+.dotG {
+  background: #28c840;
+}
+
+.fileTab {
+  font-size: 0.86em;
+  letter-spacing: 0.01em;
+  color: #c9ccd1;
+}
+
+/* Holds the crossfading code layers. Positioned so they can stack. */
+.stageWrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ------------------------------------------------------------ idle model */
+
+/*
+ * `data-live="0"` means the laptop is scrolled off-screen, or the tab is in
+ * the background. Every looping animation in the model stops where it stands.
+ *
+ * Paused animations are not merely cheap, they are free: the compositor holds
+ * the last frame and the style engine stops being asked to recompute anything.
+ * The model resumes mid-cycle when it comes back, so nothing about how it
+ * looks or moves changes — the only difference is that it no longer costs a
+ * repaint per frame while it is four sections up the page.
+ */
+.wrap[data-live="0"] .float,
+.wrap[data-live="0"] .caret {
+  animation-play-state: paused;
+}
+
+/* --------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .float,
+  .caret {
+    animation: none;
+  }
+}
